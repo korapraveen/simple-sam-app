@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  # The Database Service ("The Pantry")
+  postgres:
+    image: postgres:14-alpine
+    container_name: sam-postgres
+    environment:
+      POSTGRES_DB: sam_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: mysecretpassword
+    volumes:
+      # This runs our schema file on first startup to create the table
+      - ./backend/schema.sql:/docker-entrypoint-initdb.d/init.sql
+      # This persists our database data even if the container is removed
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+
+  # The Backend Service ("The Kitchen")
+  backend:
+    build: ./backend # Tells Docker to build the image from the 'backend' folder
+    container_name: sam-backend
+    ports:
+      - "4000:4000"
+    depends_on:
+      - postgres # Ensures the database is started before the backend
+    restart: unless-stopped
+
+  # The Frontend Service ("The Dining Room")
+  frontend:
+    build: ./frontend # Tells Docker to build the image from the 'frontend' folder
+    container_name: sam-frontend
+    ports:
+      - "80:80" # Maps the container's port 80 to our machine's port 80
+    depends_on:
+      - backend # Ensures the backend is running before the frontend starts
+    restart: unless-stopped
+
+volumes:
+  postgres_data: # Defines the named volume for data persistence
